@@ -41,6 +41,8 @@ AMainCharacter::AMainCharacter(const FObjectInitializer& ObjectInitializer):
 
 	jumpCount = 0;
 
+	StartJumpVelocity_Y = 0.0f;
+
 }
 
 // Called when the game starts or when spawned
@@ -55,7 +57,10 @@ void AMainCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (jumping) Jump();
+	if (jumping) {
+		StartJumpVelocity_Y = GetVelocity().Y;
+		Jump();
+	};
 
 	if (crouching) GetCharacterMovement()->Crouch();
 	else GetCharacterMovement()->UnCrouch();
@@ -83,7 +88,12 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 void AMainCharacter::Landed(const FHitResult& Hit) {
 	Super::Landed(Hit);
-
+	GEngine->AddOnScreenDebugMessage(0, 2, FColor::Green, FString("Landed"));
+	GEngine->AddOnScreenDebugMessage(1, 2, FColor::Green, FString::SanitizeFloat(GetVelocity().Y));
+	if (FMath::IsNearlyZero(StartJumpVelocity_Y) && jumpCount < 2) {
+		GetCharacterMovement()->MaxWalkSpeed = IdleJunpLandingSpeed;
+		GetWorld()->GetTimerManager().SetTimer(IdleJumpLandingTimer,this, &AMainCharacter::OnIdleJumpLandingStart, 0.82f, false );
+	}
 	jumpCount = 0;
 }
 
@@ -100,7 +110,7 @@ void AMainCharacter::CheckJump() {
 	else {
 		jumping = true;
 		jumpCount++;
-		GEngine->AddOnScreenDebugMessage(0, 10, FColor::Green, FString("JumpCount=")+FString::SanitizeFloat(jumpCount));
+		GEngine->AddOnScreenDebugMessage(0, 10, FColor::Green, FString("Character starts jumping")+FString::SanitizeFloat(jumpCount));
 		if (jumpCount == 2) {
 			LaunchCharacter(FVector(0,0,700), false, true);
 		}
@@ -114,7 +124,6 @@ void AMainCharacter::CheckCrouch() {
 
 void AMainCharacter::StartSprint() {
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
-	GEngine->AddOnScreenDebugMessage(0, 3, FColor::Green, FString("Sprint"));
 }
 
 void AMainCharacter::FinishSprint() {
@@ -141,9 +150,19 @@ void AMainCharacter::PostInitializeComponents() {
 }
 
 void AMainCharacter::Punch() {
-	if (PunchAnimMontage && !crouching && !jumping) {
-		GEngine->AddOnScreenDebugMessage(0, 3, FColor::Green, FString("Montage started"));
+	if (PunchAnimMontage && !crouching && !GetCharacterMovement()->IsFalling() && FMath::Abs(GetVelocity().Y)<10.0f) {
+		GetCharacterMovement()->MaxWalkSpeed = StandingPunchSpeed;
 		PlayAnimMontage(PunchAnimMontage,1, NAME_None);
-		GEngine->AddOnScreenDebugMessage(0, 3, FColor::Green, FString("Montage done"));
+		GetWorld()->GetTimerManager().SetTimer(PunchingTimer, this, &AMainCharacter::OnPunchingTimerEnd, PunchAnimMontage->CalculateSequenceLength(), false);
 	}
+}
+
+void AMainCharacter::OnPunchingTimerEnd() {
+	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+	GetWorld()->GetTimerManager().ClearTimer(PunchingTimer);
+}
+
+void AMainCharacter::OnIdleJumpLandingStart() {
+	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+	GetWorld()->GetTimerManager().ClearTimer(IdleJumpLandingTimer);
 }

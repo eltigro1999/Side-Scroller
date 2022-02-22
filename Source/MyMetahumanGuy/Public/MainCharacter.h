@@ -10,6 +10,7 @@ class UCameraComponent;
 class USpringArmComponent;
 class UMainCharacterMovementComponent;
 class UAnimMontage;
+struct FTimerHandle;
 
 
 UCLASS()
@@ -51,11 +52,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Speed")
 		float WalkSpeed = 120.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Speed")
+		float StandingPunchSpeed = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Speed")
+		float IdleJunpLandingSpeed = 0.0f;
+
 	UPROPERTY()
 		bool jumping;
 	
 	UPROPERTY()
 		bool crouching;
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -81,4 +89,9 @@ public:
 private:
 	void MoveForward(float Amount);
 	UMainCharacterMovementComponent* MainCharacterMovementComponent;
+	FTimerHandle PunchingTimer;
+	FTimerHandle IdleJumpLandingTimer;
+	void OnPunchingTimerEnd();
+	float StartJumpVelocity_Y;
+	void OnIdleJumpLandingStart();
 };
