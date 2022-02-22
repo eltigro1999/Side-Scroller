@@ -94,4 +94,5 @@ private:
 	void OnPunchingTimerEnd();
 	float StartJumpVelocity_Y;
 	void OnIdleJumpLandingStart();
+	float BasicJumpZVelocity;
 };

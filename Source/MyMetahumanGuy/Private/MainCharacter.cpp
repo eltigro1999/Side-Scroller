@@ -42,6 +42,7 @@ AMainCharacter::AMainCharacter(const FObjectInitializer& ObjectInitializer):
 	jumpCount = 0;
 
 	StartJumpVelocity_Y = 0.0f;
+	BasicJumpZVelocity = GetCharacterMovement()->JumpZVelocity;
 
 }
 
@@ -92,6 +93,7 @@ void AMainCharacter::Landed(const FHitResult& Hit) {
 	GEngine->AddOnScreenDebugMessage(1, 2, FColor::Green, FString::SanitizeFloat(GetVelocity().Y));
 	if (FMath::IsNearlyZero(StartJumpVelocity_Y) && jumpCount < 2) {
 		GetCharacterMovement()->MaxWalkSpeed = IdleJunpLandingSpeed;
+		GetCharacterMovement()->JumpZVelocity = 0.0f;
 		GetWorld()->GetTimerManager().SetTimer(IdleJumpLandingTimer,this, &AMainCharacter::OnIdleJumpLandingStart, 0.82f, false );
 	}
 	jumpCount = 0;
@@ -164,5 +166,6 @@ void AMainCharacter::OnPunchingTimerEnd() {
 
 void AMainCharacter::OnIdleJumpLandingStart() {
 	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+	GetCharacterMovement()->JumpZVelocity = BasicJumpZVelocity;
 	GetWorld()->GetTimerManager().ClearTimer(IdleJumpLandingTimer);
 }
