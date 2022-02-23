@@ -43,7 +43,8 @@ AMainCharacter::AMainCharacter(const FObjectInitializer& ObjectInitializer):
 
 	StartJumpVelocity_Y = 0.0f;
 	BasicJumpZVelocity = GetCharacterMovement()->JumpZVelocity;
-
+	StandKicking = false; 
+	StandPunching = false;
 }
 
 // Called when the game starts or when spawned
@@ -85,6 +86,7 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Walk", EInputEvent::IE_Pressed, this, &AMainCharacter::StartWalk);
 	PlayerInputComponent->BindAction("Walk", EInputEvent::IE_Released, this, &AMainCharacter::FinishWalk);
 	PlayerInputComponent->BindAction("Punch", EInputEvent::IE_Pressed, this, &AMainCharacter::Punch);
+	PlayerInputComponent->BindAction("Kick", EInputEvent::IE_Pressed, this,  &AMainCharacter::Kick);
 }
 
 void AMainCharacter::Landed(const FHitResult& Hit) {
@@ -92,7 +94,7 @@ void AMainCharacter::Landed(const FHitResult& Hit) {
 	GEngine->AddOnScreenDebugMessage(0, 2, FColor::Green, FString("Landed"));
 	GEngine->AddOnScreenDebugMessage(1, 2, FColor::Green, FString::SanitizeFloat(GetVelocity().Y));
 	if (FMath::IsNearlyZero(StartJumpVelocity_Y) && jumpCount < 2) {
-		GetCharacterMovement()->MaxWalkSpeed = IdleJunpLandingSpeed;
+		GetCharacterMovement()->MaxWalkSpeed = StandSpeed;
 		GetCharacterMovement()->JumpZVelocity = 0.0f;
 		GetWorld()->GetTimerManager().SetTimer(IdleJumpLandingTimer,this, &AMainCharacter::OnIdleJumpLandingStart, 0.82f, false );
 	}
@@ -110,10 +112,11 @@ void AMainCharacter::CheckJump() {
 		GEngine->AddOnScreenDebugMessage(0, 10, FColor::Green, FString("Character Finishes Jumping"));
 	}
 	else {
+		if (StandKicking || StandPunching) return;
 		jumping = true;
 		jumpCount++;
-		GEngine->AddOnScreenDebugMessage(0, 10, FColor::Green, FString("Character starts jumping")+FString::SanitizeFloat(jumpCount));
 		if (jumpCount == 2) {
+			GEngine->AddOnScreenDebugMessage(0, 10, FColor::Green, FString("JumpCount") + FString::SanitizeFloat(jumpCount));
 			LaunchCharacter(FVector(0,0,700), false, true);
 		}
 	}
@@ -125,7 +128,9 @@ void AMainCharacter::CheckCrouch() {
 }
 
 void AMainCharacter::StartSprint() {
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	if (!StandKicking && !StandPunching &&
+		!(jumping && FMath::IsNearlyZero(StartJumpVelocity_Y)))
+		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 }
 
 void AMainCharacter::FinishSprint() {
@@ -133,7 +138,9 @@ void AMainCharacter::FinishSprint() {
 }
 
 void AMainCharacter::StartWalk() {
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	if (!StandKicking && !StandPunching &&
+		!(jumping && FMath::IsNearlyZero(StartJumpVelocity_Y)))
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 }
 
 void AMainCharacter::FinishWalk() {
@@ -152,16 +159,27 @@ void AMainCharacter::PostInitializeComponents() {
 }
 
 void AMainCharacter::Punch() {
-	if (PunchAnimMontage && !crouching && !GetCharacterMovement()->IsFalling() && FMath::Abs(GetVelocity().Y)<10.0f) {
-		GetCharacterMovement()->MaxWalkSpeed = StandingPunchSpeed;
-		PlayAnimMontage(PunchAnimMontage,1, NAME_None);
-		GetWorld()->GetTimerManager().SetTimer(PunchingTimer, this, &AMainCharacter::OnPunchingTimerEnd, PunchAnimMontage->CalculateSequenceLength(), false);
+	PunchKick(PunchAnimMontage);
+}
+
+void AMainCharacter::Kick() {
+	PunchKick(KickAnimMontage);
+}
+
+void AMainCharacter::PunchKick(UAnimMontage* AnimMontage) {
+	if (AnimMontage && !crouching && !GetCharacterMovement()->IsFalling()
+		&& FMath::IsNearlyZero(GetVelocity().Y) && GetWorld()) {
+		StandPunching= StandKicking = true;
+		GetCharacterMovement()->MaxWalkSpeed = StandSpeed;
+		PlayAnimMontage(AnimMontage, 1, NAME_None);
+		GetWorld()->GetTimerManager().SetTimer(PunchingTimer, this, &AMainCharacter::OnPunchingTimerEnd, AnimMontage->CalculateSequenceLength(), false);
 	}
 }
 
 void AMainCharacter::OnPunchingTimerEnd() {
-	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
 	GetWorld()->GetTimerManager().ClearTimer(PunchingTimer);
+	GetCharacterMovement()->MaxWalkSpeed = RunSpeed;
+	StandPunching = StandKicking = false;
 }
 
 void AMainCharacter::OnIdleJumpLandingStart() {
@@ -169,3 +187,4 @@ void AMainCharacter::OnIdleJumpLandingStart() {
 	GetCharacterMovement()->JumpZVelocity = BasicJumpZVelocity;
 	GetWorld()->GetTimerManager().ClearTimer(IdleJumpLandingTimer);
 }
+

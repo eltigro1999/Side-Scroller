@@ -31,6 +31,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Montage")
 		UAnimMontage* PunchAnimMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Montage")
+		UAnimMontage* KickAnimMontage;
 
 	void CheckJump();
 	void CheckCrouch();
@@ -42,6 +44,9 @@ public:
 	void FinishWalk();
 
 	void Punch();
+	void Kick();
+	bool StandPunching;
+	bool StandKicking;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Speed")
 		float SprintSpeed = 1200.0f;
@@ -53,10 +58,8 @@ public:
 		float WalkSpeed = 120.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Speed")
-		float StandingPunchSpeed = 0.0f;
+		float StandSpeed = 0.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Speed")
-		float IdleJunpLandingSpeed = 0.0f;
 
 	UPROPERTY()
 		bool jumping;
@@ -95,4 +98,6 @@ private:
 	float StartJumpVelocity_Y;
 	void OnIdleJumpLandingStart();
 	float BasicJumpZVelocity;
+
+	void PunchKick(UAnimMontage*);
 };
