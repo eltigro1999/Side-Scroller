@@ -34,6 +34,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Montage")
 		UAnimMontage* KickAnimMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Movement")
+		bool Climbing=false;
+
 	void CheckJump();
 	void CheckCrouch();
 
@@ -47,6 +50,7 @@ public:
 	void Kick();
 	bool StandPunching;
 	bool StandKicking;
+	void StartClimbing();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Speed")
 		float SprintSpeed = 1200.0f;

@@ -9,6 +9,8 @@
 #include "MainCharacterController.h"
 #include "MainCharacterMovementComponent.h"
 #include "Animation/AnimMontage.h"
+#include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 
 
 // Sets default values
@@ -87,6 +89,7 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Walk", EInputEvent::IE_Released, this, &AMainCharacter::FinishWalk);
 	PlayerInputComponent->BindAction("Punch", EInputEvent::IE_Pressed, this, &AMainCharacter::Punch);
 	PlayerInputComponent->BindAction("Kick", EInputEvent::IE_Pressed, this,  &AMainCharacter::Kick);
+	PlayerInputComponent->BindAction("Climbing", EInputEvent::IE_Pressed, this, &AMainCharacter::StartClimbing);
 }
 
 void AMainCharacter::Landed(const FHitResult& Hit) {
@@ -188,3 +191,14 @@ void AMainCharacter::OnIdleJumpLandingStart() {
 	GetWorld()->GetTimerManager().ClearTimer(IdleJumpLandingTimer);
 }
 
+void AMainCharacter::StartClimbing() {
+	FVector Start = GetActorLocation()+FVector(0,0,120);
+	FRotator Rotation=GetActorRotation();
+	FHitResult Hit;
+	//GetController()->GetPlayerViewPoint(Start, Rotation);
+	FVector End = Start + (Rotation.Vector()*20.0f);
+	FCollisionQueryParams TraceParams;
+	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, TraceParams);
+	DrawDebugLine(GetWorld(), Start, End, FColor::Black, false, 10.0f, 0,10);
+
+}
