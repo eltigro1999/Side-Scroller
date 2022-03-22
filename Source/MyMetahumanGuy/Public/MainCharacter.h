@@ -46,11 +46,16 @@ public:
 	void StartWalk();
 	void FinishWalk();
 
+	void Climb(float Amount);
+	float HorizontalSpeed = 1.0f;
+
 	void Punch();
 	void Kick();
 	bool StandPunching;
 	bool StandKicking;
 	void StartClimbing();
+
+	float ClimbSlowly = 1.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Speed")
 		float SprintSpeed = 1200.0f;

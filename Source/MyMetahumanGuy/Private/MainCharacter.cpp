@@ -79,6 +79,7 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	if (!PlayerInputComponent) return;
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMainCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("Climb", this, &AMainCharacter::Climb);
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &AMainCharacter::CheckJump);
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Released, this, &AMainCharacter::CheckJump);
 	PlayerInputComponent->BindAction("Crouch", EInputEvent::IE_Pressed, this, &AMainCharacter::CheckCrouch);
@@ -105,7 +106,7 @@ void AMainCharacter::Landed(const FHitResult& Hit) {
 }
 
 void AMainCharacter::MoveForward(float Amount) {
-	AddMovementInput(FVector(0.0f, 1.0f, 0.0f), Amount);
+	AddMovementInput(FVector(0.0f, 0.0f, HorizontalSpeed), Amount);
 
 }
 
@@ -192,13 +193,28 @@ void AMainCharacter::OnIdleJumpLandingStart() {
 }
 
 void AMainCharacter::StartClimbing() {
-	FVector Start = GetActorLocation()+FVector(0,0,120);
-	FRotator Rotation=GetActorRotation();
-	FHitResult Hit;
-	//GetController()->GetPlayerViewPoint(Start, Rotation);
-	FVector End = Start + (Rotation.Vector()*20.0f);
-	FCollisionQueryParams TraceParams;
-	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, TraceParams);
-	DrawDebugLine(GetWorld(), Start, End, FColor::Black, false, 10.0f, 0,10);
+	if (!Climbing) {
+		FVector Start = GetActorLocation() + FVector(0, 0, 100);
+		FRotator Rotation = GetActorRotation();
+		FHitResult Hit;
+		//GetController()->GetPlayerViewPoint(Start, Rotation);
+		FVector End = Start + (Rotation.Vector() * 40.0f);
+		FCollisionQueryParams TraceParams;
+		GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, TraceParams);
+		DrawDebugLine(GetWorld(), Start, End, FColor::Black, false, 2.0f, 0, 10);
+		Climbing = Hit.bBlockingHit;
+		if (Climbing) HorizontalSpeed = 0.0f;
+		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, FString(Climbing ? "Climbing" : "Not climbing"));
+	} else {
+		Climbing = false;
+		HorizontalSpeed = 1.0f;
+		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, FString(Climbing ? "Climbing" : "Not climbing"));
+	}
+}
 
+void AMainCharacter::Climb(float Amount) {
+	if (Climbing) {
+		AddMovementInput(FVector(0.0f, 0.0f, ClimbSlowly), Amount);
+		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Green, FString("It's happening"));
+	}
 }
