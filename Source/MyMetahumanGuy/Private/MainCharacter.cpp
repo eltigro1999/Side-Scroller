@@ -23,7 +23,9 @@ AMainCharacter::AMainCharacter(const FObjectInitializer& ObjectInitializer):
 	// Don't rotate when the controller rotates.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
-	bUseControllerRotationRoll = false;
+	bUseControllerRotationRoll = true;
+
+	//GetCharacterMovement()->DefaultLandMovementMode(MOVE_Flying);
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>("SpringArmComponent");
 	SpringArmComponent->SetupAttachment(GetRootComponent());
@@ -52,8 +54,7 @@ AMainCharacter::AMainCharacter(const FObjectInitializer& ObjectInitializer):
 // Called when the game starts or when spawned
 void AMainCharacter::BeginPlay()
 {
-	Super::BeginPlay();
-	
+	Super::BeginPlay();	
 }
 
 // Called every frame
@@ -68,9 +69,12 @@ void AMainCharacter::Tick(float DeltaTime)
 
 	if (crouching) GetCharacterMovement()->Crouch();
 	else GetCharacterMovement()->UnCrouch();
-	
-	
 
+}
+
+void AMainCharacter::PostInitializeComponents() {
+	Super::PostInitializeComponents();
+	MainCharacterMovementComponent = Cast<UMainCharacterMovementComponent>(GetMovementComponent());
 }
 
 // Called to bind functionality to input
@@ -106,7 +110,7 @@ void AMainCharacter::Landed(const FHitResult& Hit) {
 }
 
 void AMainCharacter::MoveForward(float Amount) {
-	AddMovementInput(FVector(0.0f, 0.0f, HorizontalSpeed), Amount);
+	AddMovementInput(FVector(0.0f, HorizontalSpeed, 0.0f), Amount);
 
 }
 
@@ -156,12 +160,6 @@ UMainCharacterMovementComponent* AMainCharacter::GetMainCharacterMovementCompone
 	return MainCharacterMovementComponent;
 }
 
-void AMainCharacter::PostInitializeComponents() {
-	Super::PostInitializeComponents();
-
-	MainCharacterMovementComponent = Cast<UMainCharacterMovementComponent>(GetMovementComponent());
-}
-
 void AMainCharacter::Punch() {
 	PunchKick(PunchAnimMontage);
 }
@@ -203,7 +201,9 @@ void AMainCharacter::StartClimbing() {
 		GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, TraceParams);
 		DrawDebugLine(GetWorld(), Start, End, FColor::Black, false, 2.0f, 0, 10);
 		Climbing = Hit.bBlockingHit;
-		if (Climbing) HorizontalSpeed = 0.0f;
+		if (Climbing) {
+			HorizontalSpeed = 0.0f;
+		}
 		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, FString(Climbing ? "Climbing" : "Not climbing"));
 	} else {
 		Climbing = false;

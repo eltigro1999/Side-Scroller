@@ -77,11 +77,14 @@ public:
 		bool crouching;
 
 
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+		FORCEINLINE class UMainCharacterMovementComponent* GetMainCharacterMovementComponent() const;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-
+	UMainCharacterMovementComponent* MainCharacterMovementComponent;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -91,16 +94,13 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	UFUNCTION(BlueprintCallable, Category = "Movement")
-		FORCEINLINE UMainCharacterMovementComponent* GetMainCharacterMovementComponent() const;
-
-	virtual void PostInitializeComponents() override;
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category="Jump")
 		int jumpCount;
 
+	virtual void PostInitializeComponents() override;
+
 private:
 	void MoveForward(float Amount);
-	UMainCharacterMovementComponent* MainCharacterMovementComponent;
 	FTimerHandle PunchingTimer;
 	FTimerHandle IdleJumpLandingTimer;
 	void OnPunchingTimerEnd();
@@ -109,4 +109,5 @@ private:
 	float BasicJumpZVelocity;
 
 	void PunchKick(UAnimMontage*);
+
 };
