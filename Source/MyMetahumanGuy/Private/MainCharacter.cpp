@@ -34,10 +34,15 @@ AMainCharacter::AMainCharacter(const FObjectInitializer& ObjectInitializer):
 	SpringArmComponent->bUsePawnControlRotation = true; //If you look at the same thing in the Third Person template project,
 														//you'll see that you can never use the right mouse movement to rotate
 														//the camera around the pawn if Use Pawn Control Rotation is enabled.
+	SpringArmComponent->SetUsingAbsoluteRotation(true);
+
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>("CameraComponent");
 	CameraComponent->SetupAttachment(SpringArmComponent);
-
+	CameraComponent->bUsePawnControlRotation = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->AirControl = 0.6f;
+	GetCharacterMovement()->GroundFriction = 0.5f;
 
 	jumping = false;
 
@@ -55,6 +60,9 @@ AMainCharacter::AMainCharacter(const FObjectInitializer& ObjectInitializer):
 void AMainCharacter::BeginPlay()
 {
 	Super::BeginPlay();	
+	GetMainCharacterMovementComponent()->MaxFlySpeed = 300;
+	GetMainCharacterMovementComponent()->BrakingDecelerationFlying = 2000;	//Stop flying immediately after releas up/down key
+
 }
 
 // Called every frame
@@ -69,6 +77,9 @@ void AMainCharacter::Tick(float DeltaTime)
 
 	if (crouching) GetCharacterMovement()->Crouch();
 	else GetCharacterMovement()->UnCrouch();
+
+	//DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation()+ GetActorRotation().Vector()*(-75), FColor::Black, false, 2.0f, 0, 20);
+
 
 }
 
@@ -199,14 +210,17 @@ void AMainCharacter::StartClimbing() {
 		FVector End = Start + (Rotation.Vector() * 40.0f);
 		FCollisionQueryParams TraceParams;
 		GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, TraceParams);
-		DrawDebugLine(GetWorld(), Start, End, FColor::Black, false, 2.0f, 0, 10);
+		//DrawDebugLine(GetWorld(), Start, End, FColor::Black, false, 2.0f, 0, 10);
 		Climbing = Hit.bBlockingHit;
 		if (Climbing) {
+			RotationWhenClimbing = GetActorRotation();
 			HorizontalSpeed = 0.0f;
+			GetMainCharacterMovementComponent()->SetMovementMode(EMovementMode::MOVE_Flying);
 		}
 		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, FString(Climbing ? "Climbing" : "Not climbing"));
 	} else {
 		Climbing = false;
+		GetMainCharacterMovementComponent()->SetMovementMode(EMovementMode::MOVE_Walking);
 		HorizontalSpeed = 1.0f;
 		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, FString(Climbing ? "Climbing" : "Not climbing"));
 	}
@@ -216,5 +230,8 @@ void AMainCharacter::Climb(float Amount) {
 	if (Climbing) {
 		AddMovementInput(FVector(0.0f, 0.0f, ClimbSlowly), Amount);
 		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Green, FString("It's happening"));
+		if (Amount) {
+			SetActorRotation(RotationWhenClimbing);
+		}
 	}
 }

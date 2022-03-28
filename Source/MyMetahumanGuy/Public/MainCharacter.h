@@ -69,6 +69,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Speed")
 		float StandSpeed = 0.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Climbing")
+	FRotator RotationWhenClimbing;
 
 	UPROPERTY()
 		bool jumping;
