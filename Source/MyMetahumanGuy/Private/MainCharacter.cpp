@@ -62,7 +62,6 @@ void AMainCharacter::BeginPlay()
 	Super::BeginPlay();	
 	GetMainCharacterMovementComponent()->MaxFlySpeed = 300;
 	GetMainCharacterMovementComponent()->BrakingDecelerationFlying = 2000;	//Stop flying immediately after releas up/down key
-
 }
 
 // Called every frame
@@ -77,10 +76,6 @@ void AMainCharacter::Tick(float DeltaTime)
 
 	if (crouching) GetCharacterMovement()->Crouch();
 	else GetCharacterMovement()->UnCrouch();
-
-	//DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation()+ GetActorRotation().Vector()*(-75), FColor::Black, false, 2.0f, 0, 20);
-
-
 }
 
 void AMainCharacter::PostInitializeComponents() {
@@ -105,7 +100,8 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Walk", EInputEvent::IE_Released, this, &AMainCharacter::FinishWalk);
 	PlayerInputComponent->BindAction("Punch", EInputEvent::IE_Pressed, this, &AMainCharacter::Punch);
 	PlayerInputComponent->BindAction("Kick", EInputEvent::IE_Pressed, this,  &AMainCharacter::Kick);
-	PlayerInputComponent->BindAction("Climbing", EInputEvent::IE_Pressed, this, &AMainCharacter::StartClimbing);
+	PlayerInputComponent->BindAction("Climbing", EInputEvent::IE_Pressed, this, &AMainCharacter::WantsClimbing);
+	PlayerInputComponent->BindAction("Climbing", EInputEvent::IE_Released, this, &AMainCharacter::DoesntWantClimbing);
 }
 
 void AMainCharacter::Landed(const FHitResult& Hit) {
@@ -201,37 +197,53 @@ void AMainCharacter::OnIdleJumpLandingStart() {
 	GetWorld()->GetTimerManager().ClearTimer(IdleJumpLandingTimer);
 }
 
-void AMainCharacter::StartClimbing() {
-	if (!Climbing) {
-		FVector Start = GetActorLocation() + FVector(0, 0, 100);
-		FRotator Rotation = GetActorRotation();
-		FHitResult Hit;
-		//GetController()->GetPlayerViewPoint(Start, Rotation);
-		FVector End = Start + (Rotation.Vector() * 40.0f);
-		FCollisionQueryParams TraceParams;
-		GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, TraceParams);
-		//DrawDebugLine(GetWorld(), Start, End, FColor::Black, false, 2.0f, 0, 10);
-		Climbing = Hit.bBlockingHit;
-		if (Climbing) {
-			RotationWhenClimbing = GetActorRotation();
-			HorizontalSpeed = 0.0f;
-			GetMainCharacterMovementComponent()->SetMovementMode(EMovementMode::MOVE_Flying);
-		}
-		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, FString(Climbing ? "Climbing" : "Not climbing"));
-	} else {
-		Climbing = false;
+void AMainCharacter::WantsClimbing() {
+	WantsToClimb = true;
+}
+
+void AMainCharacter::DoesntWantClimbing() {
+	WantsToClimb = false;
+	//If he's not falling he walks
+	if (GetMainCharacterMovementComponent()->MovementMode!=MOVE_Falling) {
 		GetMainCharacterMovementComponent()->SetMovementMode(EMovementMode::MOVE_Walking);
-		HorizontalSpeed = 1.0f;
-		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, FString(Climbing ? "Climbing" : "Not climbing"));
 	}
 }
 
 void AMainCharacter::Climb(float Amount) {
-	if (Climbing) {
-		AddMovementInput(FVector(0.0f, 0.0f, ClimbSlowly), Amount);
-		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Green, FString("It's happening"));
-		if (Amount) {
+	if (WantsToClimb) {
+		if (Amount == 0) {
+			RotationWhenClimbing = GetActorRotation();
+		}
+		FVector GetOnSubjectStart = GetActorLocation() + FVector(0, 0, 100);
+		FVector ClimbingStart = GetActorLocation();
+		FRotator Rotation = GetActorRotation();
+		FHitResult ClimbingHit;
+		FHitResult GetOnSubjectHit;
+		FVector GetOnSubjectLineEnd = GetOnSubjectStart + (Rotation.Vector() * 37.0f);
+		FVector ClimbingLineEnd = ClimbingStart + (Rotation.Vector() * 37.0f);
+		FCollisionQueryParams TraceParams;
+		TraceParams.AddIgnoredActor(this);
+		GetWorld()->LineTraceSingleByChannel(GetOnSubjectHit, GetOnSubjectStart, GetOnSubjectLineEnd, ECC_Visibility, TraceParams);
+		GetWorld()->LineTraceSingleByChannel(ClimbingHit, ClimbingStart, ClimbingLineEnd, ECC_Visibility, TraceParams);
+		GetOnSubject = !GetOnSubjectHit.bBlockingHit;
+		Climbing = ClimbingHit.bBlockingHit;
+		if (!GetOnSubject && Climbing) {
+			//When character wants to climb he can't crouch
+			GetCharacterMovement()->bWantsToCrouch = false;
+			GetMainCharacterMovementComponent()->SetMovementMode(EMovementMode::MOVE_Flying);
+			HorizontalSpeed = 0.0f;
+			AddMovementInput(FVector(0,0,ClimbSlowly), Amount);
 			SetActorRotation(RotationWhenClimbing);
 		}
+		else if (GetOnSubject && Climbing) {
+			Climbing = false;
+			//TODO get on obstacle
+		}
+	}
+	else {
+		Climbing = false;
+		GetOnSubject = false;
+		HorizontalSpeed = 1.0f;
+		GEngine->AddOnScreenDebugMessage(1, 3, FColor::Red, FString("Here"));
 	}
 }

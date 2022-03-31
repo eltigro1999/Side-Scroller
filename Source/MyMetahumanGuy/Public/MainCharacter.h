@@ -34,8 +34,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Montage")
 		UAnimMontage* KickAnimMontage;
 
+	//@Climbing is set true if Character is climbing 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Movement")
 		bool Climbing=false;
+	
+
+	//@GetOnSubject is set true if Character can get on an obstacle
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Movement")
+		bool GetOnSubject = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Movement")
+		bool WantsToClimb = false;
 
 	void CheckJump();
 	void CheckCrouch();
@@ -53,7 +62,8 @@ public:
 	void Kick();
 	bool StandPunching;
 	bool StandKicking;
-	void StartClimbing();
+	void WantsClimbing();
+	void DoesntWantClimbing();
 
 	float ClimbSlowly = 1.0f;
 
